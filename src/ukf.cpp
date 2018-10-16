@@ -23,10 +23,10 @@ UKF::UKF() {
   use_radar_ = true;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 2;//30;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.4;//30;
 
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -67,15 +67,15 @@ UKF::UKF() {
   weights_ = VectorXd(2 * n_aug_ + 1);
 
   ///* time when the state is true, in us
-  time_us_ = 0;
+  time_us_ = 0.0;
 
   //measurement covariance matrix - laser
-  MatrixXd R_laser_ = MatrixXd(2, 2);
+  R_laser_ = MatrixXd(2, 2);
   R_laser_ << std_laspx_*std_laspx_, 0,
               0, std_laspy_*std_laspy_;
 
   //measurement covariance matrix - radar
-  MatrixXd R_radar_ = MatrixXd(3, 3);
+  R_radar_ = MatrixXd(3, 3);
   R_radar_ << std_radr_*std_radr_, 0, 0,
               0, std_radphi_*std_radphi_, 0,
               0, 0, std_radrd_*std_radrd_;
@@ -105,17 +105,32 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     
     // Init state vector
     x_.fill(1.0);
+    P_ << 0.09, 0, 0, 0, 0,
+          0, 0.09, 0, 0, 0,
+          0, 0, 0.09, 0, 0,
+          0, 0, 0, 1, 0,
+          0, 0, 0, 0, 1;
 
     // Init weights
-    double weight_0 = lambda_/(lambda_ + n_aug_ );
-    weights_(0) = weight_0;
+    weights_(0) = lambda_/(lambda_ + n_aug_ );
     for (int i=1; i < 2 * n_aug_ + 1 ; i++) {  //2n+1 weights
       double weight = 0.5/(n_aug_ + lambda_);
       weights_(i) = weight;
     }
 
     if(meas_package.sensor_type_ == MeasurementPackage::RADAR){
-      // TODO Radar
+      double rho = meas_package.raw_measurements_[0];
+      double phi = meas_package.raw_measurements_[1];
+      double rho_d = meas_package.raw_measurements_[2];
+
+      double xm = rho * cos(phi);
+      double ym = rho * sin(phi);
+      double vxm = rho_d * cos(phi);
+      double yvm = rho_d * cos(phi);
+
+      double vm = sqrt(vxm * vxm + yvm * yvm);
+
+      x_ << xm, ym, vm, 0, 0;
     }
 
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
@@ -136,7 +151,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   ****************************************************************************/
 
   //compute the time elapsed between the current and previous measurements
-  float dt = (meas_package.timestamp_ - time_us_) / 1000000.0; //dt - expressed in seconds
+  double dt = (meas_package.timestamp_ - time_us_) / 1000000.0; //dt - expressed in seconds
   time_us_ = meas_package.timestamp_;
   Prediction(dt);
 
@@ -358,11 +373,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   }
 
   //add measurement noise covariance matrix
-  MatrixXd R = MatrixXd(n_z,n_z);
-  R <<    std_radr_*std_radr_, 0, 0,
-          0, std_radphi_*std_radphi_, 0,
-          0, 0,std_radrd_*std_radrd_;
-  S = S + R;
+  S = S + R_radar_;
 
   //create vector for incoming radar measurement
   VectorXd z = meas_package.raw_measurements_;

@@ -67,6 +67,12 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  // //measurement covariance matrix - radar
+  MatrixXd R_radar_;
+
+  //measurement covariance matrix - laser
+  MatrixXd R_laser_;
+
 
   /**
    * Constructor
