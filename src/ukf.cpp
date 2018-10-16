@@ -411,4 +411,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
 
+  double nis_radar = z_diff.transpose() * S.inverse() * z_diff;
+  //cout << nis_radar << endl;
+
 }
