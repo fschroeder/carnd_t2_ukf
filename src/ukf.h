@@ -73,6 +73,9 @@ public:
   //measurement covariance matrix - laser
   MatrixXd R_laser_;
 
+  // Laser Measurement function for the
+  MatrixXd H_laser_;
+
 
   /**
    * Constructor
